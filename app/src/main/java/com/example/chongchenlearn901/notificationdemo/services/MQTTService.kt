@@ -26,10 +26,23 @@ class MQTTService: Service(){
         private val SERVER_URI = "tcp://192.168.2.75:1883"
     }
 
-    private lateinit var mqttClient: MqttAndroidClient
-    private var builder: NotificationCompat.Builder? = null
-    private lateinit var intent:Intent
-    private lateinit var pendingIntent: PendingIntent
+    private val builder: NotificationCompat.Builder by lazy {
+        NotificationCompat.Builder(applicationContext, NOTIFICATION_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                // let notification popup
+                .setDefaults(Notification.DEFAULT_ALL)
+                .setPriority(NotificationManager.IMPORTANCE_HIGH)
+    }
+    private val mqttClient: MqttAndroidClient by lazy {
+        val androidId = Settings.Secure.getString(applicationContext.contentResolver, Settings.Secure.ANDROID_ID)
+        MqttAndroidClient(applicationContext, SERVER_URI, androidId)
+    }
+    private val intent:Intent by lazy {
+        Intent(applicationContext, MainActivity::class.java)
+    }
+    private val pendingIntent: PendingIntent by lazy {
+        PendingIntent.getActivity(applicationContext, 0, intent, 0)
+    }
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
@@ -43,9 +56,6 @@ class MQTTService: Service(){
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "onCreate")
-        intent = Intent(applicationContext, MainActivity::class.java)
-        pendingIntent = PendingIntent.getActivity(applicationContext, 0, intent, 0)
-
         connectMqtt()
     }
 
@@ -64,8 +74,6 @@ class MQTTService: Service(){
 
 
     private fun connectMqtt(){
-        val androidId = Settings.Secure.getString(applicationContext.contentResolver, Settings.Secure.ANDROID_ID)
-        mqttClient = MqttAndroidClient(applicationContext, SERVER_URI, androidId)
         mqttClient.setCallback(object : MqttCallbackExtended {
             override fun connectComplete(reconnect: Boolean, serverUri: String?) {
                 if(reconnect){
@@ -104,12 +112,6 @@ class MQTTService: Service(){
             disconnectBufferOption.isDeleteOldestMessages = false
             mqttClient.setBufferOpts(disconnectBufferOption)
 
-            builder = NotificationCompat.Builder(applicationContext, NOTIFICATION_ID)
-                    .setSmallIcon(android.R.drawable.ic_dialog_alert)
-                    // let notification popup
-                    .setDefaults(Notification.DEFAULT_ALL)
-                    .setPriority(NotificationManager.IMPORTANCE_HIGH)
-
             mqttClient.subscribe("test", 2, subscribe)
 
         }
@@ -124,16 +126,12 @@ class MQTTService: Service(){
         message?.let {
             Log.d(TAG, "topic: $topic, message: ${String(message.payload)}")
 
-            builder?.let {
-                builder!!.setContentTitle("First notification")
-                        .setContentText(String(message.payload))
-                        .setSubText("first sub text")
-                        .setContentIntent(pendingIntent)
-                val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                notificationManager.notify(1, builder!!.build())
-            }?: run{
-                Log.d(TAG, "builder is null.")
-            }
+            builder.setContentTitle("First notification")
+                    .setContentText(String(message.payload))
+                    .setSubText("first sub text")
+                    .setContentIntent(pendingIntent)
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(1, builder.build())
 
         }?: run{
             Log.d(TAG, "topic: $topic, message is empty.")
