@@ -11,7 +11,7 @@ import android.provider.Settings
 import android.support.v4.app.NotificationCompat
 import android.util.Log
 import com.example.chongchenlearn901.notificationdemo.MainActivity
-import com.example.chongchenlearn901.notificationdemo.constant.ConstantStrings
+import com.example.chongchenlearn901.notificationdemo.receivers.ACTION_RESTART
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 
@@ -52,13 +52,13 @@ class MQTTService: Service(){
     override fun onDestroy() {
         Log.d(TAG, "destroy")
         mqttClient.unregisterResources()
-        sendBroadcast(Intent(ConstantStrings.ACTION_RESTART))
+        sendBroadcast(Intent(ACTION_RESTART))
         super.onDestroy()
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         Log.d(TAG, "onTaskRemoved")
-        sendBroadcast(Intent(ConstantStrings.ACTION_RESTART))
+        sendBroadcast(Intent(ACTION_RESTART))
         super.onTaskRemoved(rootIntent)
     }
 
